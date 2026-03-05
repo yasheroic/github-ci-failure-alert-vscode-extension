@@ -1,6 +1,7 @@
 const vscode = require('vscode');
 const fetch = require('node-fetch');
 const path = require('path');
+const { exec } = require("child_process");
 
 const OWNER = "yasheroic";
 const REPO = "github-ci-failure-alert-vscode-extension";
@@ -11,30 +12,48 @@ let lastFailure = null;
 
 function activate(context) {
 
+    console.log("GitHub CI Alert extension started");
+
     vscode.window.showInformationMessage("GitHub CI Alert extension started");
 
+    playSound();
+
+    // run once immediately
     checkCI();
 
-    setInterval(checkCI, 60000);
+    // check every 10 seconds (better for demo)
+    setInterval(checkCI, 10000);
 }
 
 async function checkCI() {
 
     try {
 
+        console.log("Checking GitHub Actions...");
+
         const res = await fetch(API);
         const data = await res.json();
 
-        const run = data.workflow_runs[0];
-
-        if(!run) return;
-
-        if(!lastFailure){
-            lastFailure = run.id;
+        if (!data.workflow_runs || data.workflow_runs.length === 0) {
+            console.log("No workflow runs found");
             return;
         }
 
-        if(run.conclusion === "failure" && run.id !== lastFailure){
+        const run = data.workflow_runs[0];
+
+        console.log("Latest run:", run.id, run.conclusion);
+
+        // first run initialization
+        if (!lastFailure) {
+            lastFailure = run.id;
+            console.log("Initialized last run:", run.id);
+            return;
+        }
+
+        // detect new failure
+        if (run.conclusion === "failure" && run.id !== lastFailure) {
+
+            console.log("New CI failure detected");
 
             lastFailure = run.id;
 
@@ -43,31 +62,31 @@ async function checkCI() {
             playSound();
         }
 
-    } catch(err){
+    } catch (err) {
 
-        console.log("CI check error:", err);
+        console.error("CI check error:", err);
 
     }
 
 }
 
-const player = require("play-sound")();
-
 function playSound() {
-
-    const path = require("path");
 
     const soundPath = path.join(__dirname, "sounds", "fail.mp3");
 
-    player.play(soundPath, (err) => {
+    console.log("Playing sound:", soundPath);
+
+    exec(`afplay "${soundPath}"`, (err) => {
         if (err) {
             console.error("Sound error:", err);
+        } else {
+            console.log("Sound played successfully");
         }
     });
 
 }
 
-function deactivate(){}
+function deactivate() {}
 
 module.exports = {
     activate,
