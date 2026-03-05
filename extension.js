@@ -51,13 +51,18 @@ async function checkCI() {
 
 }
 
-function playSound(){
+const player = require("play-sound")();
 
-    const player = require('play-sound')();
-    const soundPath = path.join(__dirname, 'sounds', 'fail.mp3');
+function playSound() {
 
-    player.play(soundPath, function(err){
-        if(err) console.log(err);
+    const path = require("path");
+
+    const soundPath = path.join(__dirname, "sounds", "fail.mp3");
+
+    player.play(soundPath, (err) => {
+        if (err) {
+            console.error("Sound error:", err);
+        }
     });
 
 }
